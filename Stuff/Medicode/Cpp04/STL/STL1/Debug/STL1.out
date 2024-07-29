@@ -1,0 +1,11 @@
+There were 11 numbers read: 45 76 43 89 24 64 80 3 22 66 2 
+The sum is 514
+The average is 46.7273
+The minimum is 2
+The maximum is 89
+Ascending order: 2 3 22 24 43 45 64 66 76 80 89 
+Descending order: 89 80 76 66 64 45 43 24 22 3 2 
+Greater than 10: 45 76 43 89 24 64 80 22 66 
+First number greater than 10: 45
+After adding 3: 48 79 46 92 27 67 83 6 25 69 5 
+After subtracting the 3 out again: 45 76 43 89 24 64 80 3 22 66 2 

@@ -1,0 +1,64 @@
+// Illustrates Host Arrays
+
+#include <iostream>
+#include <cstdlib>
+#include <string>
+using namespace std;
+
+#define NOT_FOUND 1403
+
+EXEC SQL INCLUDE SQLCA;
+
+void error(const char* fname);
+
+EXEC SQL WHENEVER SQLERROR DO error("HostArray/main.pc");
+
+int main()
+{
+	// Host variables:
+	EXEC SQL BEGIN DECLARE SECTION;
+	char* h_logon = "scott/tiger@cmdev";
+    static int h_empno[10];
+	static char h_ename[10][15];
+	static char h_job[10][14];
+	EXEC SQL END DECLARE SECTION;
+
+	// Connect:
+	EXEC SQL CONNECT :h_logon;
+
+	EXEC SQL DECLARE emp_cur CURSOR FOR
+    SELECT empno, ename, job
+	FROM emp;
+
+    // Fetch all rows:
+    EXEC SQL OPEN emp_cur;
+    int totProcessed = 0;
+    do
+    {
+        EXEC SQL FETCH emp_cur INTO :h_empno, :h_ename, :h_job;
+        int nCurrent = sqlca.sqlerrd[2] - totProcessed;
+        if (nCurrent)
+        {
+            cout << "fetched " << nCurrent << " rows\n";
+            for (int i = 0; i < nCurrent; ++i)
+                cout << h_empno[i] << ", " << h_ename[i] << ", " << h_job[i] << endl;
+            totProcessed += nCurrent;
+        }
+    } while (sqlca.sqlcode != NOT_FOUND);
+
+    // Close cursor:
+    EXEC SQL CLOSE emp_cur;
+
+	// Disconnect:
+	EXEC SQL COMMIT RELEASE;
+    return EXIT_SUCCESS;
+}
+
+void error(const char* fname)
+{
+	cout << "SQL ERROR (" << fname << "), " << SQLCODE
+		 << ": " << string(sqlca.sqlerrm.sqlerrmc)
+         << endl;
+    EXEC SQL ROLLBACK RELEASE;
+	exit(EXIT_FAILURE);
+}

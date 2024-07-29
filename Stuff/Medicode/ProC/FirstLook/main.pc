@@ -1,0 +1,61 @@
+// This program uses the following proc pre-compile options:
+//
+// code=cpp char_map=string def_sqlcode=yes
+
+#include <iostream>
+#include <cstdlib>
+#include <string>
+using namespace std;
+
+#define NOT_FOUND 1403  // 100 for ANSI mode
+
+EXEC SQL INCLUDE SQLCA; // or #include "sqlca.h"
+
+void error(const char* prefix);
+
+int main()
+{
+	// Host variables:
+	EXEC SQL BEGIN DECLARE SECTION;
+	char* h_user = "scott";
+	char* h_pwd = "tiger";
+	char* h_alias = "cmdev";
+    int h_deptno;
+	char h_dname[15];
+	char h_loc[14];
+	EXEC SQL END DECLARE SECTION;
+
+	// Connect:
+	EXEC SQL CONNECT :h_user IDENTIFIED BY :h_pwd USING :h_alias;
+    if (SQLCODE < 0)
+        error("Connection failure");
+
+	// Do a singleton query:
+	EXEC SQL SELECT deptno, dname, loc
+        INTO :h_deptno, :h_dname, :h_loc
+	FROM dept
+	WHERE deptno = 10;
+
+    if (SQLCODE < 0)
+        error("SELECT failed");
+
+    if (SQLCODE == NOT_FOUND)
+        cout << "No record found\n";
+    else
+	    cout << h_deptno << ", "
+             << h_dname << ", "
+             << h_loc << endl;
+
+	// Disconnect:
+	EXEC SQL COMMIT RELEASE;
+    return EXIT_SUCCESS;
+}
+
+void error(const char* prefix)
+{
+	cout << "SQL ERROR (" << prefix << "), " << SQLCODE
+		 << ": " << string(sqlca.sqlerrm.sqlerrmc)
+         << endl;
+    EXEC SQL ROLLBACK RELEASE;
+	exit(EXIT_FAILURE);
+}

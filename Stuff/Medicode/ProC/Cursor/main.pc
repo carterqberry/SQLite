@@ -1,0 +1,58 @@
+// Illustrates a Cursor
+
+#include <iostream>
+#include <cstdlib>
+#include <string>
+using namespace std;
+
+#define NOT_FOUND 1403
+
+EXEC SQL INCLUDE SQLCA;
+
+void error(const char* fname);
+
+EXEC SQL WHENEVER SQLERROR DO error("Cursor/main.pc");
+
+int main()
+{
+	// Host variables:
+	EXEC SQL BEGIN DECLARE SECTION;
+	char* h_logon = "scott/tiger@cmdev";
+    int h_deptno;
+	char h_dname[15];
+	char h_loc[14];
+	EXEC SQL END DECLARE SECTION;
+
+	// Connect:
+	EXEC SQL CONNECT :h_logon;
+
+	// Define cursor:
+	EXEC SQL DECLARE dept_cur CURSOR FOR
+    SELECT deptno, dname, loc
+	FROM dept;
+
+    // Fetch all rows:
+    EXEC SQL OPEN dept_cur;
+    EXEC SQL WHENEVER NOT FOUND DO BREAK;
+    for (;;)
+    {
+        EXEC SQL FETCH dept_cur INTO :h_deptno, :h_dname, :h_loc;
+        cout << h_deptno << ", " << h_dname << ", " << h_loc << endl;
+    }
+
+    // Close cursor:
+    EXEC SQL CLOSE dept_cur;
+
+	// Disconnect:
+	EXEC SQL COMMIT RELEASE;
+    return EXIT_SUCCESS;
+}
+
+void error(const char* fname)
+{
+	cout << "SQL ERROR (" << fname << "), " << SQLCODE
+		 << ": " << string(sqlca.sqlerrm.sqlerrmc)
+         << endl;
+    EXEC SQL ROLLBACK RELEASE;
+	exit(EXIT_FAILURE);
+}

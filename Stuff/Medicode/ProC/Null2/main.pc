@@ -1,0 +1,65 @@
+// Illustrates host indicator structures.
+
+#include <iostream>
+#include <cstdlib>
+#include <string>
+using namespace std;
+
+#define NOT_FOUND 1403
+
+EXEC SQL INCLUDE SQLCA;
+
+void error(const char* prefix);
+
+int main()
+{
+	// Host variables:
+	EXEC SQL BEGIN DECLARE SECTION;
+	char* h_logon = "scott/tiger@cmdev";
+	struct dept
+	{
+		int deptno;
+		char dname[15];
+		char loc[14];
+	} h_rec;
+	struct dept_ind
+	{
+        short deptno_ind;
+		short dname_ind;
+		short loc_ind;
+	} h_ind;
+	EXEC SQL END DECLARE SECTION;
+
+	// Connect:
+	EXEC SQL CONNECT :h_logon;
+    if (SQLCODE < 0)
+        error("Connection failure");
+
+	// Do a singleton query:
+	EXEC SQL SELECT deptno, dname, loc into :h_rec:h_ind
+	FROM dept
+	WHERE deptno = 10;
+
+    if (SQLCODE < 0)
+        error("SELECT failed");
+
+    if (SQLCODE == NOT_FOUND)
+        cout << "No record found\n";
+    else
+	    cout << h_rec.deptno << ", "
+             << (h_ind.dname_ind == -1 ? "NULL" : h_rec.dname) << ", "
+             << (h_ind.loc_ind == -1 ? "NULL" : h_rec.loc) << endl;
+
+	// Disconnect:
+	EXEC SQL COMMIT RELEASE;
+    return EXIT_SUCCESS;
+}
+
+void error(const char* prefix)
+{
+	cout << "SQL ERROR (" << prefix << "), " << SQLCODE
+		 << ": " << string(sqlca.sqlerrm.sqlerrmc)
+         << endl;
+    EXEC SQL ROLLBACK RELEASE;
+	exit(EXIT_FAILURE);
+}

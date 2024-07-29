@@ -1,0 +1,63 @@
+
+#include <iostream>
+#include <cstdlib>
+#include <string>
+using namespace std;
+
+#define NOT_FOUND 1403
+
+EXEC SQL INCLUDE SQLCA;
+
+void error(const char* fname);
+
+EXEC SQL WHENEVER SQLERROR DO error("Dynamic/main.pc");
+
+int main()
+{
+	// Host variables:
+	EXEC SQL BEGIN DECLARE SECTION;
+	char* logon = "scott/tiger@cmdev";
+    int h_empno;
+	char h_ename[15];
+	char h_job[14];
+    char h_stmt[120];
+    int h_sal;
+	EXEC SQL END DECLARE SECTION;
+
+	// Connect:
+	EXEC SQL CONNECT :logon;
+
+    // Prepare SQL:
+    strcpy(h_stmt, "select empno, ename, job from emp where sal > :s");
+    EXEC SQL PREPARE query FROM :h_stmt;
+
+	// Define cursor:
+	EXEC SQL DECLARE emp_cur CURSOR FOR query;
+
+    // Fetch all rows:
+    cout << "Enter a salary: ";
+    cin >> h_sal;
+    EXEC SQL OPEN emp_cur USING :h_sal;
+    EXEC SQL WHENEVER NOT FOUND DO BREAK;
+    for (;;)
+    {
+        EXEC SQL FETCH emp_cur INTO :h_empno, :h_ename, :h_job;
+        cout << h_empno << ", " << h_ename << ", " << h_job << endl;
+    }
+
+    // Close cursor:
+    EXEC SQL CLOSE emp_cur;
+
+	// Disconnect:
+	EXEC SQL COMMIT RELEASE;
+    return EXIT_SUCCESS;
+}
+
+void error(const char* fname)
+{
+	cout << "SQL ERROR (" << fname << "), " << SQLCODE
+		 << ": " << string(sqlca.sqlerrm.sqlerrmc)
+         << endl;
+    EXEC SQL ROLLBACK RELEASE;
+	exit(EXIT_FAILURE);
+}

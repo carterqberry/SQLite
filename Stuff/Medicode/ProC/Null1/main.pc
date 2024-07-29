@@ -1,0 +1,59 @@
+// Illustrates indicator variables
+
+#include <iostream>
+#include <cstdlib>
+#include <string>
+using namespace std;
+
+#define NOT_FOUND 1403
+
+EXEC SQL INCLUDE SQLCA;
+
+void error(const char* prefix);
+
+int main()
+{
+	// Host variables:
+	EXEC SQL BEGIN DECLARE SECTION;
+	char* h_logon = "scott/tiger@cmdev";
+    int h_deptno;
+	char h_dname[15];
+    short h_dname_ind;
+	char h_loc[14];
+    short h_loc_ind;
+	EXEC SQL END DECLARE SECTION;
+
+	// Connect:
+	EXEC SQL CONNECT :h_logon;
+    if (SQLCODE < 0)
+        error("Connection failure");
+
+	// Do a singleton query:
+	EXEC SQL SELECT deptno, dname, loc
+        INTO :h_deptno, :h_dname:h_dname_ind, :h_loc:h_loc_ind
+	FROM dept
+	WHERE deptno = 10;
+
+    if (SQLCODE < 0)
+        error("SELECT failed");
+
+    if (SQLCODE == NOT_FOUND)
+        cout << "No record found\n";
+    else
+	    cout << h_deptno << ", "
+             << (h_dname_ind == -1 ? "NULL" : h_dname) << ", "
+             << (h_loc_ind == -1 ? "NULL" : h_loc) << endl;
+
+	// Disconnect:
+	EXEC SQL COMMIT RELEASE;
+    return EXIT_SUCCESS;
+}
+
+void error(const char* prefix)
+{
+	cout << "SQL ERROR (" << prefix << "), " << SQLCODE
+		 << ": " << string(sqlca.sqlerrm.sqlerrmc)
+         << endl;
+    EXEC SQL ROLLBACK RELEASE;
+	exit(EXIT_FAILURE);
+}
